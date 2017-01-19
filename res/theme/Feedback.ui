@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<component type="Form" name="Feedback" cloudDestinationProperty="Feedback" layout="BoxLayout" boxLayoutAxis="Y" title="Feedback" >
+</component>

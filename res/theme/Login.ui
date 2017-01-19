@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<component type="Form" name="Login" cloudDestinationProperty="Login" layout="BoxLayout" boxLayoutAxis="Y" title="Login" >
+  <component type="Container" name="Container" cloudDestinationProperty="Container" uiid="ContainerMain" layout="BoxLayout" boxLayoutAxis="Y" >
+    <component type="Label" name="Label" cloudDestinationProperty="Label" text="Email" >
+    </component>
+    <component type="TextField" name="TextField" cloudBoundProperty="text" cloudDestinationProperty="TextField" text="" constraint="1" >
+    </component>
+    <component type="Label" name="Label1" cloudDestinationProperty="Label1" text="Password" >
+    </component>
+    <component type="TextField" name="TextField1" cloudBoundProperty="text" cloudDestinationProperty="TextField1" text="" constraint="65536" >
+    </component>
+    <component type="Container" name="Container1" cloudDestinationProperty="Container1" layout="GridLayout" gridLayoutRows="1" gridLayoutColumns="3" >
+      <component type="Label" name="Label2" cloudDestinationProperty="Label2" text=" " >
+      </component>
+      <component type="Button" name="Button" cloudDestinationProperty="Button" commandName="Login" commandId="1" commandAction="Home" commandBack="false" text="Login" >
+      </component>
+      <component type="Label" name="Label3" cloudDestinationProperty="Label3" text=" " >
+      </component>
+    </component>
+    <component type="Container" name="Container11" cloudDestinationProperty="Container1" layout="GridLayout" gridLayoutRows="1" gridLayoutColumns="3" >
+      <component type="Label" name="Label2" cloudDestinationProperty="Label2" text=" " >
+      </component>
+      <component type="Button" name="Button1" cloudDestinationProperty="Button1" commandName="Registration" commandId="2" commandAction="Register" commandBack="false" text="Registration" >
+      </component>
+      <component type="Label" name="Label3" cloudDestinationProperty="Label3" text=" " >
+      </component>
+    </component>
+  </component>
+</component>
