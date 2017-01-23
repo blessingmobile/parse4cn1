@@ -5,6 +5,7 @@
  */
 package services;
 
+import com.parse4cn1.Parse;
 import com.parse4cn1.ParseException;
 import com.parse4cn1.ParseObject;
 
@@ -13,18 +14,33 @@ import com.parse4cn1.ParseObject;
  * @author sandraarnolds
  */
 public class PlayerService {
-    
-    public void createTask(String userObjectId, String taskName, String taskDescription, String url) {
-        try {
-            ParseObject task = ParseObject.create("Task");
-            task.put("userId", userObjectId);
-            task.put("taskName", taskName);
-            task.put("taskDescription", taskDescription);
-            task.put("url", url);
-            task.save();
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-    }
 
+    /*public void createPlayer() {
+     try {
+     ParseObject player = ParseObject.create("Task");
+     task.put("userId", userObjectId);
+           
+     hash.put("id", id);
+                    
+     hash.put("name", name);
+     hash.put("playerDescription", playerDescription);               
+     hash.put("league", league);
+     hash.put("team", team);
+     hash.put("country", country);           
+    
+     hash.put("goals", goals);        
+     hash.put("nationalCaps", nationalCaps);
+     hash.put("motm", motm);
+     hash.put("redCard", redCard);
+     hash.put("star", star);
+    
+     hash.put("imgName", imgName);
+     hash.put("vidName", vidName);       
+     hash.put("reactionName", reactionName); 
+            
+     task.save();
+     } catch (ParseException e) {
+     e.printStackTrace();
+     }
+     }*/
 }

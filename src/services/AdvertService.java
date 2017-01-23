@@ -10,6 +10,7 @@ import com.parse4cn1.ParseException;
 import com.parse4cn1.ParseFile;
 import com.parse4cn1.ParseObject;
 import com.parse4cn1.ParseQuery;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,24 +34,32 @@ public class AdvertService {
         }
     }
 
-    public static Advert getEnabledAd() {
-        Advert img = null;
+    public static List<Advert> getEnabledAd() {
+        List<Advert> adverts = new ArrayList<>();
+        
         try {
-            
+
             ParseQuery<ParseObject> query = ParseQuery.getQuery("Advert");
-            query.whereEqualTo("isEnabled", false);
+            //query.whereEqualTo("isEnabled", true);
             List<ParseObject> results = query.find();
-            ParseObject advert = results.get(0);
-            String imageUrl = advert.getString("imageUrl");
-            String clickUrl = advert.getString("clickUrl");
-            ParseFile file = advert.getParseFile("imageRaw");
-            img = new Advert(file, imageUrl, clickUrl);
-            
+
+            for (ParseObject advert : results) {
+                String name = advert.getString("name");
+                String imageUrl = advert.getString("imageUrl");
+                String clickUrl = advert.getString("clickUrl");
+                boolean isEnabled = advert.getBoolean("isEnabled");
+                ParseFile file = advert.getParseFile("imageRaw");
+                Advert advertObject = new Advert(name, file, imageUrl, clickUrl);
+                advertObject.setObjectId(advert.getObjectId());
+                advertObject.setParseObject(advert);
+                advertObject.setIsEnabled(isEnabled);
+                adverts.add(advertObject);
+            }
         } catch (ParseException e) {
             Log.p("[ADsService->getEnabledAd()] ParseExceptoin " + e.getMessage(), Log.DEBUG);
         }
-        
-        return img;
+
+        return adverts;
     }
 
 }

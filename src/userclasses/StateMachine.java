@@ -6,6 +6,7 @@ package userclasses;
 import com.codename1.capture.Capture;
 import com.codename1.components.InfiniteProgress;
 import com.codename1.components.MediaPlayer;
+import com.codename1.components.OnOffSwitch;
 import com.codename1.components.ShareButton;
 import com.codename1.components.SpanLabel;
 import com.codename1.io.ConnectionRequest;
@@ -28,6 +29,7 @@ import com.codename1.ui.list.DefaultListModel;
 import com.codename1.ui.list.ListModel;
 import com.codename1.ui.util.Resources;
 import com.parse4cn1.Parse;
+import com.parse4cn1.ParseException;
 import com.parse4cn1.ParseObject;
 import com.parse4cn1.ParseUser;
 import com.pmovil.nativega.GANative;
@@ -37,12 +39,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
 import services.AdvertService;
 import services.Advert;
+import services.AfroUtility;
 import services.UserService;
 
 /**
@@ -52,14 +56,15 @@ import services.UserService;
 public class StateMachine extends StateMachineBase {
     //com.pmovil.nativega.Tracker tracker = ga.newTracker("UA-89102159-1");//MOBILE WEB
 
-    Advert advertObject;
-    
-    com.pmovil.nativega.Tracker tracker;
-    Button btnLine2;
-    String vidName;
-    String name2;
-    boolean debugFlag = true;
-    int selectedProfileIndex = 1;
+    private Advert advertObject;
+    private java.util.List adverts;
+
+    private com.pmovil.nativega.Tracker tracker;
+    private Button btnLine2;
+    private String vidName;
+    private String name2;
+    private boolean debugFlag = true;
+    private int selectedProfileIndex = 1;
     private Form thisForm;
     private String selectedPlayer = "";
     private static Tabs tabs = null;
@@ -67,9 +72,11 @@ public class StateMachine extends StateMachineBase {
     private Resources res;
     private java.util.List players;
     private static ParseObject selectedPlayerHashtable;
-    String picture = "";
-    String clickUrl; 
-    
+    private String picture = "";
+    private String clickUrl;
+    private Hashtable selectedAdvertHash;
+    private Hashtable selectedPlayerHash;
+    String tempUri;
 
     public StateMachine(String resFile) {
         super(resFile);
@@ -85,7 +92,8 @@ public class StateMachine extends StateMachineBase {
 
         String url = "http://mfactory.dedicated.co.za:1337/parse";
         Parse.initialize(url, "app", null);
-        Log.setLevel(Log.REPORTING_NONE);
+        //Log.setLevel(Log.REPORTING_NONE);
+        Log.setLevel(Log.DEBUG);
 
         ParseUser user = UserService.userLogin("blessing@mfactory.mobi", "12345");
 
@@ -111,9 +119,9 @@ public class StateMachine extends StateMachineBase {
 
         this.res = res;
 
-        advertObject = AdvertService.getEnabledAd();
+        adverts = AdvertService.getEnabledAd();
+        advertObject = (Advert) adverts.get(0);
 
-        // System.out.println("ADs=" + ads);
         players = PlayerModel.getPlayers();
 
     }
@@ -122,6 +130,7 @@ public class StateMachine extends StateMachineBase {
     protected void beforeHome(Form f) {
 
         thisForm = f;
+
         try {
             tabs = (Tabs) findByName("Tabs", f);
 
@@ -218,9 +227,7 @@ public class StateMachine extends StateMachineBase {
             TextField txtVidSearch = (TextField) findByName("txtVidSearch", tabs);
             txtVidSearch.setText("");
 
-            tabs.setSwipeActivated(false);
-            tabs.getTabsContainer().setLayout(new GridLayout(1, tabs.getTabsContainer().getComponentCount()));
-            tabs.getTabsContainer().setScrollableX(false);
+            AfroUtility.setupTabs(tabs);
 
             Button Button5 = (Button) findByName("Button5", f);
             Button5.setText("");
@@ -353,23 +360,21 @@ public class StateMachine extends StateMachineBase {
         playVideo("");
 
     }
- 
+
     private void generateAd(Container banner) {
         Form parent = banner.getComponentForm();
-        Button buttonTop = (Button)findByName("ButtonTop", parent);
-        
+        Button buttonTop = (Button) findByName("ButtonTop", parent);
+
         if (advertObject != null) {
-        
+
             clickUrl = advertObject.getClickUrl();
             String imageUrl = advertObject.getImageUrl();
-            
+
             String name1 = "advert_" + advertObject.getFile().getUrl();
             String imageName = imageUrl;
-            
-           
 
             try {
-                
+
                 InputStream is = Display.getInstance().getResourceAsStream(getClass(), "/placeholder.png");//TEMP
                 EncodedImage placeHolder = EncodedImage.create(is);
 
@@ -383,8 +388,8 @@ public class StateMachine extends StateMachineBase {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            
-            if(buttonTop != null){
+
+            if (buttonTop != null) {
                 buttonTop.addActionListener(new ActionListener() {
 
                     @Override
@@ -395,7 +400,7 @@ public class StateMachine extends StateMachineBase {
                     }
                 });
             }
-            
+
         } else {
             Log.p("Statemachine -> generateAd(..) ads object null", Log.DEBUG);
         }
@@ -1107,5 +1112,291 @@ public class StateMachine extends StateMachineBase {
         return line1;
     }
 
+//    @Override
+//    protected void onCMS_BtnGoogleAnalyticsAction(Component c, ActionEvent event) {
+//
+//        Display.getInstance().execute("https://analytics.google.com");
+//
+//    }
+    @Override
+    protected void beforeCMS(final Form f) {
 
+        Tabs tabsCMS = (Tabs) findByName("Tabs", f);
+        AfroUtility.setupTabs(tabsCMS);
+
+        tabsCMS.addSelectionListener(new SelectionListener() {
+
+            @Override
+            public void selectionChanged(int oldSelected, int newSelected) {
+
+                if (newSelected == 2) {
+
+                    Dialog.show("Please visit", "https://analytics.google.com", "Ok", null);
+                }
+
+            }
+        });
+
+        tabsCMS.setSelectedIndex(1);
+        final List listPlayers = (List) findByName("ListPlayers", f);
+        final List listAdverts = (List) findByName("ListAdverts", f);
+
+        listPlayers.setModel(new DefaultListModel(RenderTransformer.getPlayers(players)));
+        listPlayers.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+
+                selectedPlayerHash = (Hashtable) listPlayers.getSelectedItem();
+                Image img = (Image) selectedPlayerHash.get("icon");
+                Log.p("Player clicked: " + img.getWidth(), Log.DEBUG);
+
+            }
+        });
+
+        listAdverts.setModel(new DefaultListModel(RenderTransformer.getAdverts(adverts)));
+        listAdverts.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+
+                selectedAdvertHash = (Hashtable) listAdverts.getSelectedItem();
+                String objectId = (String) selectedAdvertHash.get("objectId");
+                Image img = (Image) selectedAdvertHash.get("icon");
+                String name = (String) selectedAdvertHash.get("name");
+                String clickUrl = (String) selectedAdvertHash.get("clickUrl");
+                final Advert advert = (Advert) selectedAdvertHash.get("advert");
+                final ParseObject parseObjectAdvert = advert.getParseObject();
+                boolean isEnabled = parseObjectAdvert.getBoolean("isEnabled");
+
+                Form formNewAdvert = (Form) createContainer("/theme", "CMS - New Advert");
+                Command back = new Command("Back") {
+
+                    @Override
+                    public void actionPerformed(ActionEvent evt) {
+                        f.showBack();
+
+                    }
+
+                };
+                formNewAdvert.setBackCommand(back);
+
+                final TextField txtName = (TextField) findByName("txtName", formNewAdvert);
+                final TextArea txtClickUrl = (TextArea) findByName("txtClickUrl", formNewAdvert);
+                final Label lblExistingImage = (Label) findByName("lblExistingImage", formNewAdvert);
+                final OnOffSwitch OnOffSwitch = (OnOffSwitch) findByName("OnOffSwitch", formNewAdvert);
+                final Button btnUploadImg = (Button) findByName("btnUploadImg", formNewAdvert);
+                final Label lblImagePreview = (Label) findByName("lblImagePreview", formNewAdvert);
+                final Label lblNewImage = (Label) findByName("lblNewImage", formNewAdvert);
+                final Button btnSave = (Button) findByName("btnSave", formNewAdvert);
+
+                txtName.setText(name);
+                txtClickUrl.setText(clickUrl);
+                OnOffSwitch.setValue(isEnabled);
+                lblExistingImage.setIcon(img);
+                lblExistingImage.setText("");
+
+                btnUploadImg.addActionListener(new ActionListener() {
+
+                    @Override
+                    public void actionPerformed(ActionEvent evt) {
+                        Display.getInstance().openGallery(new ActionListener() {
+
+                            @Override
+                            public void actionPerformed(ActionEvent evt) {
+                                try {
+                                    tempUri = evt.getSource().toString();
+                                    Image img = Image.createImage(tempUri);
+                                    lblNewImage.setIcon(img);
+                                    lblNewImage.getComponentForm().revalidate();
+                                } catch (IOException ioe) {
+                                    Log.p("beforeCMS(..)-> upload img: " + ioe, Log.DEBUG);
+                                }
+                            }
+                        }, Display.GALLERY_IMAGE);
+                    }
+                });
+
+                btnSave.addActionListener(new ActionListener() {
+
+                    @Override
+                    public void actionPerformed(ActionEvent evt) {
+
+                        ParseUser login = UserService.userLogin("blessing@mfactory.mobi", "12345");
+
+                        ParseUser user = ParseUser.getCurrent();
+
+                        parseObjectAdvert.put("name", txtName.getText());
+                        parseObjectAdvert.put("clickUrl", txtClickUrl.getText());
+                        parseObjectAdvert.put("objectIdUser", user.getObjectId());
+                        parseObjectAdvert.put("isEnabled", OnOffSwitch.isValue());
+
+
+                        if(tempUri != null){
+                            Advert advert = AfroUtility.uploadImage(tempUri);
+                            parseObjectAdvert.put("imageUrl", advert.getImageUrl());
+                            parseObjectAdvert.put("imageRaw", advert.getFile());
+                        }
+                        
+                        tempUri = null;
+
+                        try {
+                            parseObjectAdvert.save();
+                            Log.p("Ad clicked: saved objectId=" + parseObjectAdvert.getObjectId(), Log.DEBUG);
+
+                            for(int i = 0; i < adverts.size(); i++){
+                                Advert tempAdvertObject = (Advert)adverts.get(i);
+                                ParseObject tempAdvert = tempAdvertObject.getParseObject();
+                                if(OnOffSwitch.isValue() == true && !parseObjectAdvert.getObjectId().equals(tempAdvert.getObjectId())){
+                                    //reset all Advert objects
+                                    //TODO move to cloud
+                                    tempAdvert.put("isEnabled", false);
+                                    tempAdvert.save();
+                                }
+                            }
+                            
+                            Log.p("Ad clicked: saved objectId=" + parseObjectAdvert.getObjectId(), Log.DEBUG);
+
+                            
+                            Dialog.show("Updated", "Advert has been updated.", "Ok", null);
+                            
+                            
+                            
+
+                        } catch (ParseException e) {
+                            Log.p("Ad clicked: ParseException=" + e.getMessage(), Log.DEBUG);
+                        }
+                    }
+                });
+
+                formNewAdvert.show();
+
+                Log.p("Ad clicked: " + img.getWidth(), Log.DEBUG);
+            }
+        });
+
+        f.revalidate();
+    }
+
+    @Override
+    protected void onCMS_BtnNewPlayerAction(Component c, ActionEvent event) {
+
+        thisForm = c.getComponentForm();
+
+        Form f = (Form) createContainer("/theme", "CMS - New Player");
+        Command back = new Command("Back") {
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                thisForm.showBack();
+
+            }
+
+        };
+        f.setBackCommand(back);
+
+        f.show();
+
+    }
+
+    @Override
+    protected void onCMS_BtnNewAdvertAction(Component c, ActionEvent event) {
+
+        thisForm = c.getComponentForm();
+
+        Form f = (Form) createContainer("/theme", "CMS - New Advert");
+
+        final TextField txtName = (TextField) findByName("txtName", f);
+        final TextArea txtClickUrl = (TextArea) findByName("txtClickUrl", f);
+        final Container contSwitch = (Container) findByName("contSwitch", f);
+        final Label lblExistingImage = (Label) findByName("lblExistingImage", f);
+        final Button btnUploadImg = (Button) findByName("btnUploadImg", f);
+        final Label lblImagePreview = (Label) findByName("lblImagePreview", f);
+        final Label lblNewImage = (Label) findByName("lblNewImage", f);
+        final Button btnSave = (Button) findByName("btnSave", f);
+
+        f.removeComponent(contSwitch);
+        f.removeComponent(lblExistingImage);
+        f.revalidate();
+
+        btnUploadImg.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                Display.getInstance().openGallery(new ActionListener() {
+
+                    @Override
+                    public void actionPerformed(ActionEvent evt) {
+                        try {
+                            tempUri = evt.getSource().toString();
+                            Image img = Image.createImage(tempUri);
+                            lblNewImage.setIcon(img);
+                            lblNewImage.getComponentForm().revalidate();
+                        } catch (IOException ioe) {
+                            Log.p("beforeCMS(..)-> upload img: " + ioe, Log.DEBUG);
+                        }
+                    }
+                }, Display.GALLERY_IMAGE);
+            }
+        });
+
+        btnSave.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+
+                ParseUser login = UserService.userLogin("blessing@mfactory.mobi", "12345");
+
+                ParseUser user = ParseUser.getCurrent();
+
+                ParseObject parseObjectAdvert = ParseObject.create("Advert");
+
+                parseObjectAdvert.put("name", txtName.getText());
+                parseObjectAdvert.put("clickUrl", txtClickUrl.getText());
+                parseObjectAdvert.put("objectIdUser", user.getObjectId());
+                parseObjectAdvert.put("isEnabled", false);
+
+                Advert advert = AfroUtility.uploadImage(tempUri);
+
+                parseObjectAdvert.put("imageUrl", advert.getImageUrl());
+                parseObjectAdvert.put("imageRaw", advert.getFile());
+
+                try {
+                    parseObjectAdvert.save();
+                    Log.p("New Advert: saved objectId=" + parseObjectAdvert.getObjectId(), Log.DEBUG);
+
+                    Dialog.show("Updated", "Advert has been saved.", "Ok", null);
+
+                } catch (ParseException e) {
+                    Log.p("New Advert: ParseException=" + e.getMessage(), Log.DEBUG);
+                }
+            }
+        });
+
+        Command back = new Command("Back") {
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                thisForm.showBack();
+
+            }
+
+        };
+        f.setBackCommand(back);
+        f.show();
+
+    }
+
+    @Override
+    protected boolean onLoginLogin() {
+
+        ParseUser user = UserService.userLogin(findTxtEmail().getText(), findTxtPassword().getText());
+
+        if (user == null) {
+            Dialog.show("Error", "Invalid Email / Password", "Ok", null);
+            return true;
+        }
+
+        return false;
+    }
 }
